@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AI画图">
+<title>AI 画图</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;background:#0f172a;color:#e5e7eb;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;background:#111827;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;font-size:18px;font-weight:600;z-index:5;border-bottom:1px solid #1f2937}
+main{padding:16px;max-width:720px;margin:auto}
+section{display:none}section.on{display:block}
+textarea,input,select{width:100%;font-size:16px;padding:12px;border-radius:12px;border:1px solid #334155;background:#1e293b;color:#f1f5f9}
+textarea{min-height:110px;resize:vertical}
+label{display:block;margin:14px 0 6px;color:#94a3b8;font-size:14px}
+button{font-size:16px;padding:12px 16px;border-radius:12px;border:0;background:#334155;color:#fff;min-height:44px}
+button.primary{background:#6366f1;width:100%;margin-top:16px;font-weight:600}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.seg{display:flex;gap:6px}.seg button{flex:1}.seg button.on{background:#6366f1}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px}
+.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:#1e293b}
+.err{background:#7f1d1d;color:#fecaca;padding:12px;border-radius:12px;margin-top:12px;white-space:pre-wrap;word-break:break-word}
+.note{background:#1e293b;padding:12px;border-radius:12px;font-size:14px;color:#a5b4fc;margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{background:#1e293b;border:1px solid #334155;border-radius:999px;padding:8px 12px;font-size:14px;display:flex;gap:8px;align-items:center;max-width:100%}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.chip b{color:#f87171;font-weight:400;padding-left:4px}
+.hist{border-bottom:1px solid #1f2937;padding:12px 0}.hist p{margin:0 0 8px;font-size:14px}
+.hist .grid{margin-top:0;grid-template-columns:repeat(4,1fr)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#111827;border-top:1px solid #1f2937;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border-radius:0;color:#94a3b8;padding:14px 0}nav button.on{color:#a5b4fc;font-weight:600}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid #fff5;border-top-color:#fff;border-radius:50%;animation:s 1s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes s{to{transform:rotate(360deg)}}
+#viewer{position:fixed;inset:0;background:#000e;display:none;flex-direction:column;z-index:20;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#viewer.on{display:flex}#viewer img{flex:1;min-height:0;object-fit:contain;width:100%}
+#viewer .row{padding:12px}
+.muted{color:#64748b;font-size:13px}
+</style>
+</head>
+<body>
+<header id="title">AI 画图</header>
+<main>
+<section id="gen" class="on">
+  <label for="prompt">描述你想要的图片</label>
+  <textarea id="prompt" placeholder="例如：一只在樱花树下打盹的橘猫，水彩风格"></textarea>
+  <div class="row" style="margin-top:8px"><button id="saveTpl">⭐ 保存为模板</button><button id="clearPrompt">清空</button></div>
+  <div id="tplBox"></div>
+  <label>生成数量</label>
+  <div class="seg" id="count"><button data-n="1" class="on">1</button><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button></div>
+  <button class="primary" id="go">生成图片</button>
+  <div id="msg"></div>
+  <div class="grid" id="results"></div>
+</section>
+<section id="history">
+  <div class="row"><span class="muted" id="histInfo"></span><button id="clearHist" style="flex:0 0 auto">清空历史</button></div>
+  <div id="histList"></div>
+</section>
+<section id="settings">
+  <label for="key">xAI API 密钥</label>
+  <input id="key" type="password" autocomplete="off" placeholder="xai-...">
+  <div class="row" style="margin-top:8px"><button id="showKey">显示</button><button id="delKey">删除密钥</button></div>
+  <label for="model">模型</label>
+  <select id="model">
+    <option value="grok-imagine-image-2.0">grok-imagine-image-2.0（推荐）</option>
+    <option value="grok-imagine-image">grok-imagine-image（更便宜）</option>
+    <option value="grok-imagine-image-quality">grok-imagine-image-quality（高质量）</option>
+  </select>
+  <button class="primary" id="saveKey">保存设置</button>
+  <div class="note">🔒 密钥只保存在本设备浏览器（localStorage）中，仅用于直接请求 api.x.ai，不会发送到任何其他服务器。<br>可在 console.x.ai 获取 API 密钥。生成图片按张计费。</div>
+</section>
+</main>
+<nav><button data-tab="gen" class="on">🎨 生成</button><button data-tab="history">🕘 历史</button><button data-tab="settings">⚙️ 设置</button></nav>
+<div id="viewer"><img id="vimg" alt=""><div class="row"><button id="vsave">⬇️ 保存图片</button><button id="vclose">关闭</button></div><p class="muted" style="text-align:center;margin:0 0 8px">iPhone 也可长按图片“存储到照片”</p></div>
+<script src="app.js"></script>
+</body>
+</html>
