@@ -27,7 +27,7 @@ document.querySelectorAll('#count button').forEach(b => b.onclick = () => {
 // Settings
 $('#key').value = LS.get('xai_key', '');
 $('#model').value = LS.get('xai_model', 'grok-imagine-image-2.0');
-$('#showKey').onclick = () => { const k = $('#key'); k.type = k.type === 'password' ? 'text' : 'password'; $('#showKey').textContent = k.type === 'password' ? '显示' : '隐藏'; };
+$('#showKey').onclick = () => { const k = $('#key'); const hidden = k.style.webkitTextSecurity === 'disc'; k.style.webkitTextSecurity = hidden ? 'none' : 'disc'; $('#showKey').textContent = hidden ? '隐藏' : '显示'; };
 $('#saveKey').onclick = () => { LS.set('xai_key', $('#key').value.trim()); LS.set('xai_model', $('#model').value); toast('已保存'); };
 $('#delKey').onclick = () => { if (confirm('确定删除已保存的密钥？')) { localStorage.removeItem('xai_key'); $('#key').value = ''; toast('密钥已删除'); } };
 function toast(t) { const m = $('#msg'); m.innerHTML = ''; alert(t); }
